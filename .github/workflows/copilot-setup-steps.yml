@@ -20,6 +20,7 @@ jobs:
     # Copilot will be given its own token for its operations.
     permissions:
       contents: read
+      id-token: write
 
     steps:
       - name: Checkout code
@@ -28,9 +29,5 @@ jobs:
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
 
-      - name: Setup Cachix
-        uses: cachix/cachix-action@v17
-        with:
-          name: viluon
-          extraPullNames: nix-community
-          skipPush: true
+      - name: Setup Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
