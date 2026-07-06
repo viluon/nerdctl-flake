@@ -52,6 +52,12 @@
               version = stargzVersion;
             };
 
+            # containerd < 2.3.1 lacks the transfer-service unpack refactor
+            # (containerd/containerd#13364) required to pass the image reference
+            # to remote snapshotters, so lazy pulling silently falls back to a
+            # full extract. Pin the known-good build rather than the consumer's.
+            containerd = pkgs.containerd;
+
             default = self.packages.${system}.nerdctl;
           };
 

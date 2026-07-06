@@ -26,6 +26,13 @@ in
       description = "The nerdctl package to install (with eStargz/zstd:chunked helpers).";
     };
 
+    containerd.package = lib.mkOption {
+      type = lib.types.package;
+      default = self.packages.${pkgs.stdenv.hostPlatform.system}.containerd;
+      defaultText = lib.literalExpression "nerdctl-flake.packages.\${system}.containerd";
+      description = "The containerd package to run (pinned to a build new enough for remote-snapshotter lazy pulling).";
+    };
+
     snapshotter.package = lib.mkOption {
       type = lib.types.package;
       default = self.packages.${pkgs.stdenv.hostPlatform.system}.stargz-snapshotter;
@@ -66,6 +73,8 @@ in
     ];
 
     virtualisation.containerd.enable = true;
+
+    nixpkgs.overlays = [ (final: prev: { containerd = cfg.containerd.package; }) ];
 
     virtualisation.containerd.settings = {
       # containerd 2.x needs config schema v3 for the transfer-service
