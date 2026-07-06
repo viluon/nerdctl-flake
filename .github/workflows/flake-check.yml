@@ -1,0 +1,58 @@
+name: check
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  flake:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: create nix mount point
+        run: sudo mkdir /nix
+
+      # The integration VM test plus the Go builds need more disk than the
+      # default runner provides.
+      - name: maximize build space
+        uses: easimon/maximize-build-space@v10
+        with:
+          build-mount-path: /nix
+          overprovision-lvm: true
+          remove-android: true
+          remove-codeql: true
+          remove-docker-images: true
+          remove-dotnet: true
+          remove-haskell: true
+          root-reserve-mb: 512
+          swap-size-mb: 1024
+
+      - name: checkout
+        uses: actions/checkout@v7
+
+      - name: install nix
+        uses: cachix/install-nix-action@v31
+        with:
+          install_url: https://nixos.org/nix/install
+          extra_nix_config: |
+            auto-optimise-store = true
+            experimental-features = nix-command flakes
+            access-tokens = github.com=${{ github.token }}
+
+      - name: setup cachix
+        uses: cachix/cachix-action@v17
+        with:
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          extraPullNames: nix-community
+          name: viluon
+
+      # The nixosTest driver needs KVM, which GitHub Linux runners expose.
+      - name: enable kvm
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: check
+        run: nix flake check --log-format raw --print-build-logs
